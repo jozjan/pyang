@@ -2,7 +2,7 @@ PYANG = pyang -Wnone
 
 MODULES ?= $(wildcard *.yang)
 
-SEDSCRIPT = sed -e 's/[^-]*//' -e 's/\.yang//' -e 's/--/ --/g'
+SEDSCRIPT = sed -e 's/[^-]*//' -e 's/\.yang//' -e 's/--/ --/g' -e 's/_/ /g'
 
 test: clean out
 	@for m in $(MODULES); do 					\

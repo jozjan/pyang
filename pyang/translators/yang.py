@@ -81,10 +81,12 @@ _keyword_prefer_single_quote_arg = (
 )
 
 _keyword_with_path_arg = (
-## FIXME: tmp
+## FIXME: change these when emit_path_arg does a good job
 #    'augment',
 #    'refine',
 #    'deviation',
+## FIXME: uncomment this and run tests/test_yang/g--yang-line-length_50
+##        it doesn't look good
 #    'path',
 )
 
@@ -149,16 +151,15 @@ def emit_stmt(ctx, stmt, fd, level, prev_kwd_class, indent, indentstep):
         return
 
     fd.write(indent + keywordstr)
-    col = len(indent) + len(keywordstr)
     arg_on_new_line = False
     if len(stmt.substmts) == 0:
         eol = ';'
     else:
         eol = ' {'
     if stmt.arg is not None:
-        # line_len is length of line w/o arg
-        line_len = col + 1 + 2 + len(eol)
-        # 1 is space before arg, 2 is quotes
+        # line_len is length of line w/o arg but with quotes and space before
+        # the arg
+        line_len = len(indent) + len(keywordstr) + 1 + 2 + len(eol)
         if (stmt.keyword in _keyword_prefer_single_quote_arg and
             stmt.arg.find("'") == -1):
             # print with single quotes
@@ -184,6 +185,8 @@ def emit_stmt(ctx, stmt, fd, level, prev_kwd_class, indent, indentstep):
             arg_on_new_line = emit_arg(keywordstr, stmt, fd, indent, indentstep,
                                        max_line_len, line_len)
         elif stmt.keyword in _keyword_with_path_arg:
+            # special code for path argument; pretty-prints a long path with
+            # line breaks
             arg_on_new_line = emit_path_arg(keywordstr, stmt.arg, fd,
                                             indent, max_line_len, line_len, eol)
         elif stmt.keyword in grammar.stmt_map:
@@ -191,7 +194,8 @@ def emit_stmt(ctx, stmt, fd, level, prev_kwd_class, indent, indentstep):
             if (arg_type in _non_quote_arg_type or
                 (arg_type in _maybe_quote_arg_type and
                  not need_quote(stmt.arg))):
-                if not(need_new_line(max_line_len, line_len, stmt.arg)):
+                # minus 2 since we don't quote
+                if not(need_new_line(max_line_len, line_len-2, stmt.arg)):
                     fd.write(' ' + stmt.arg)
                 else:
                     fd.write('\n' + indent + indentstep + stmt.arg)
@@ -251,16 +255,19 @@ def emit_multi_str_arg(keywordstr, strs, fd, pref_q,
     else:
         fd.write(' ')
         prefix = indent + ((len(keywordstr) - 1) * ' ') + '+ '
+    # print first substring
     (s, q) = strs[0]
     q = select_quote(s, q, pref_q)
     if q == '"':
         s = escape_str(s)
     fd.write("%s%s%s\n" % (q, s, q))
+    # then print the rest with the prefix and a newline at the end
     for (s, q) in strs[1:-1]:
         q = select_quote(s, q, pref_q)
         if q == '"':
             s = escape_str(s)
         fd.write("%s%s%s%s\n" % (prefix, q, s, q))
+    # then print last substring with prefix but no newline
     (s, q) = strs[-1]
     q = select_quote(s, q, pref_q)
     if q == '"':
