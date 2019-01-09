@@ -162,7 +162,7 @@ def emit_stmt(ctx, stmt, fd, level, prev_kwd_class, indent, indentstep):
         if (stmt.keyword in _keyword_prefer_single_quote_arg and
             stmt.arg.find("'") == -1):
             # print with single quotes
-            if len(stmt.arg_substrings) > 1:
+            if hasattr(stmt, 'arg_substrings') and len(stmt.arg_substrings) > 1:
                 # the arg was already split into multiple lines, keep them
                 emit_multi_str_arg(keywordstr, stmt.arg_substrings, fd, "'",
                                    indent, indentstep, max_line_len, line_len)
@@ -176,7 +176,7 @@ def emit_stmt(ctx, stmt, fd, level, prev_kwd_class, indent, indentstep):
                 fd.write('\n' + indent + indentstep)
                 fd.write("'" + stmt.arg + "'")
                 arg_on_new_line = True
-        elif len(stmt.arg_substrings) > 1:
+        elif hasattr(stmt, 'arg_substrings') and len(stmt.arg_substrings) > 1:
             # the arg was already split into multiple lines, keep them
             emit_multi_str_arg(keywordstr, stmt.arg_substrings, fd, '"',
                                indent, indentstep, max_line_len, line_len)
