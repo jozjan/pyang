@@ -166,8 +166,7 @@ def emit_stmt(ctx, stmt, fd, level, prev_kwd_class, indent, indentstep):
                 # the arg was already split into multiple lines, keep them
                 emit_multi_str_arg(keywordstr, stmt.arg_substrings, fd, "'",
                                    indent, indentstep, max_line_len, line_len)
-            elif not(need_new_line(keywordstr, max_line_len,
-                                   line_len, stmt.arg)):
+            elif not(need_new_line(max_line_len, line_len, stmt.arg)):
                 # fits into a single line
                 fd.write(" '" + stmt.arg + "'")
             else:
@@ -192,8 +191,7 @@ def emit_stmt(ctx, stmt, fd, level, prev_kwd_class, indent, indentstep):
             if (arg_type in _non_quote_arg_type or
                 (arg_type in _maybe_quote_arg_type and
                  not need_quote(stmt.arg))):
-                if not(need_new_line(keywordstr, max_line_len,
-                                     line_len, stmt.arg)):
+                if not(need_new_line(max_line_len, line_len, stmt.arg)):
                     fd.write(' ' + stmt.arg)
                 else:
                     fd.write('\n' + indent + indentstep + stmt.arg)
@@ -224,14 +222,11 @@ def emit_stmt(ctx, stmt, fd, level, prev_kwd_class, indent, indentstep):
             kwd_class = get_kwd_class(s.keyword)
         fd.write(indent + '}\n')
 
-def need_new_line(keywordstr, max_line_len, line_len, arg):
-    if (max_line_len is not None and
-        line_len + len(arg) > max_line_len and
-        len(keywordstr) > 8):
-        # if the keyword is short, we don't want to add the extra new line,
-        # e.g., not:
-        #    must
-        #      'long line here'
+def need_new_line(max_line_len, line_len, arg):
+    eol = arg.find('\n')
+    if eol == -1:
+        eol = len(arg)
+    if (max_line_len is not None and line_len + eol > max_line_len):
         return True
     else:
         return False
@@ -242,7 +237,7 @@ def emit_multi_str_arg(keywordstr, strs, fd, pref_q,
     # we want to align all strings on the same column; check if
     # we can print w/o a newline
     need_new_line = False
-    if (max_line_len is not None and len(keywordstr) > 6):
+    if max_line_len is not None:
         for (s, q) in strs:
             q = select_quote(s, q, pref_q)
             if q == '"':
@@ -307,7 +302,7 @@ def emit_path_arg(keywordstr, arg, fd, indent, max_line_len, line_len, eol):
 
     arg = escape_str(arg)
 
-    if not(need_new_line(keywordstr, max_line_len, line_len, arg)):
+    if not(need_new_line(max_line_len, line_len, arg)):
         fd.write(" " + quote + arg + quote)
         return False
 
@@ -343,7 +338,7 @@ def emit_arg(keywordstr, stmt, fd, indent, indentstep, max_line_len, line_len):
         if len(arg) > 0 and arg[-1] == '\n':
             arg = arg[:-1] + r'\n'
         if (stmt.keyword in _force_newline_arg or
-            need_new_line(keywordstr, max_line_len, line_len, arg)):
+            need_new_line(max_line_len, line_len, arg)):
             fd.write('\n' + indent + indentstep + '"' + arg + '"')
             return True
         else:
